@@ -441,58 +441,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </form>
           )}
 
-          {/* Quick Demo Access Section */}
-          <div className="mt-6 pt-5 border-t border-stone-800">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-stone-400 mb-2.5">
-              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-              <span>Acesso Rápido de Demonstração</span>
-            </div>
-            <p className="text-[11px] text-stone-500 mb-3 leading-relaxed">
-              Usuários cadastrados no banco com senhas criptografadas. Clique para entrar com 1 clique:
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                id="quick-login-admin"
-                onClick={() => handleQuickLogin('admin', 'admin123')}
-                className="p-2.5 rounded-xl bg-stone-950/80 border border-stone-800 hover:border-amber-500/60 hover:bg-stone-800/80 transition-all text-left group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-amber-400 group-hover:text-amber-300">admin</span>
-                  <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 font-bold">Admin</span>
-                </div>
-                <div className="text-[10px] text-stone-400 truncate mt-0.5">admin123</div>
-              </button>
-
-              <button
-                type="button"
-                id="quick-login-caixa"
-                onClick={() => handleQuickLogin('caixa', 'caixa123')}
-                className="p-2.5 rounded-xl bg-stone-950/80 border border-stone-800 hover:border-amber-500/60 hover:bg-stone-800/80 transition-all text-left group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-stone-200 group-hover:text-white">caixa</span>
-                  <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-blue-500/10 text-blue-400 font-bold">Caixa</span>
-                </div>
-                <div className="text-[10px] text-stone-400 truncate mt-0.5">caixa123</div>
-              </button>
-
-              <button
-                type="button"
-                id="quick-login-garcom"
-                onClick={() => handleQuickLogin('garcom', 'garcom123')}
-                className="p-2.5 rounded-xl bg-stone-950/80 border border-stone-800 hover:border-amber-500/60 hover:bg-stone-800/80 transition-all text-left group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-stone-200 group-hover:text-white">garcom</span>
-                  <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-bold">Garçom</span>
-                </div>
-                <div className="text-[10px] text-stone-400 truncate mt-0.5">garcom123</div>
-              </button>
-            </div>
-          </div>
-        </div>
+          
 
         {/* Security assurance note */}
         <div className="mt-4 text-center">
