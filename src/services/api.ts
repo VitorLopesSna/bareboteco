@@ -105,6 +105,9 @@ export async function loginUser(
   setStoredToken(data.token);
   setStoredUser(data.user);
 
+ console.log('Resposta da API:', data);
+ console.log('JSON recebido:', JSON.stringify(data, null, 2));
+
   return data as AuthResponse;
 }
 
