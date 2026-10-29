@@ -7,11 +7,19 @@ import type { IPrinterConfigRepository } from '../repositories/interfaces/IPrint
  * Single Responsibility: Handling HTTP endpoints for Security Inspection, Audit Trails, and Payment generation.
  */
 export class SecurityController {
+  private auditLogger: AuditLogger;
+  private paymentSecurity: PaymentSecurityService;
+  private printerRepo: IPrinterConfigRepository;
+
   constructor(
-    private auditLogger: AuditLogger,
-    private paymentSecurity: PaymentSecurityService,
-    private printerRepo: IPrinterConfigRepository
-  ) {}
+    auditLogger: AuditLogger,
+    paymentSecurity: PaymentSecurityService,
+    printerRepo: IPrinterConfigRepository
+  ) {
+    this.auditLogger = auditLogger;
+    this.paymentSecurity = paymentSecurity;
+    this.printerRepo = printerRepo;
+  }
 
   getStatus = (_req: Request, res: Response) => {
     return res.json({

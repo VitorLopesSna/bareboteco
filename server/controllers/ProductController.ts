@@ -6,7 +6,11 @@ import type { IInventoryService } from '../services/interfaces/IInventoryService
  * Dependency Inversion: Receives IInventoryService.
  */
 export class ProductController {
-  constructor(private inventoryService: IInventoryService) {}
+  private inventoryService: IInventoryService;
+
+  constructor(inventoryService: IInventoryService) {
+    this.inventoryService = inventoryService;
+  }
 
   createProduct = (req: Request, res: Response) => {
     const { name, category, price, costPrice, stock, minStock, unit } = req.body;

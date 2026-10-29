@@ -6,7 +6,11 @@ import type { IReportService } from '../services/interfaces/IReportService.ts';
  * Dependency Inversion: Receives IReportService.
  */
 export class ReportController {
-  constructor(private reportService: IReportService) {}
+  private reportService: IReportService;
+
+  constructor(reportService: IReportService) {
+    this.reportService = reportService;
+  }
 
   getReports = (_req: Request, res: Response) => {
     const report = this.reportService.generateSalesReport();

@@ -14,16 +14,34 @@ import type { AuditLogger } from '../security/AuditLogger.ts';
  * Dependency Inversion: Receives repository and service abstractions via constructor.
  */
 export class OrderService implements IOrderService {
+  private tableRepo: ITableRepository;
+  private orderRepo: IOrderRepository;
+  private inventoryService: IInventoryService;
+  private billingService: IBillingService;
+  private printerRepo: IPrinterConfigRepository;
+  private eventPublisher?: IEventPublisher;
+  private paymentSecurity?: PaymentSecurityService;
+  private auditLogger?: AuditLogger;
+
   constructor(
-    private tableRepo: ITableRepository,
-    private orderRepo: IOrderRepository,
-    private inventoryService: IInventoryService,
-    private billingService: IBillingService,
-    private printerRepo: IPrinterConfigRepository,
-    private eventPublisher?: IEventPublisher,
-    private paymentSecurity?: PaymentSecurityService,
-    private auditLogger?: AuditLogger
-  ) {}
+    tableRepo: ITableRepository,
+    orderRepo: IOrderRepository,
+    inventoryService: IInventoryService,
+    billingService: IBillingService,
+    printerRepo: IPrinterConfigRepository,
+    eventPublisher?: IEventPublisher,
+    paymentSecurity?: PaymentSecurityService,
+    auditLogger?: AuditLogger
+  ) {
+    this.tableRepo = tableRepo;
+    this.orderRepo = orderRepo;
+    this.inventoryService = inventoryService;
+    this.billingService = billingService;
+    this.printerRepo = printerRepo;
+    this.eventPublisher = eventPublisher;
+    this.paymentSecurity = paymentSecurity;
+    this.auditLogger = auditLogger;
+  }
 
   getAllTables(): Table[] {
     return this.tableRepo.findAll();

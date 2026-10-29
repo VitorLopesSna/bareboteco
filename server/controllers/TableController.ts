@@ -6,7 +6,11 @@ import type { IOrderService } from '../services/interfaces/IOrderService.ts';
  * Dependency Inversion: Receives IOrderService.
  */
 export class TableController {
-  constructor(private orderService: IOrderService) {}
+  private orderService: IOrderService;
+
+  constructor(orderService: IOrderService) {
+    this.orderService = orderService;
+  }
 
   openTable = (req: Request, res: Response) => {
     try {

@@ -8,10 +8,16 @@ import type { IProductRepository } from '../repositories/interfaces/IProductRepo
  * Dependency Inversion: Injected with repository abstractions.
  */
 export class ReportService implements IReportService {
+  private orderRepo: IOrderRepository;
+  private productRepo: IProductRepository;
+
   constructor(
-    private orderRepo: IOrderRepository,
-    private productRepo: IProductRepository
-  ) {}
+    orderRepo: IOrderRepository,
+    productRepo: IProductRepository
+  ) {
+    this.orderRepo = orderRepo;
+    this.productRepo = productRepo;
+  }
 
   generateSalesReport(): SalesReport {
     const historyOrders = this.orderRepo.findAllHistory();

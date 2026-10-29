@@ -7,10 +7,16 @@ import type { IEventPublisher } from '../services/interfaces/IEventNotificationS
  * Dependency Inversion: Receives IPrinterConfigRepository & IEventPublisher.
  */
 export class PrinterController {
+  private printerRepo: IPrinterConfigRepository;
+  private eventPublisher?: IEventPublisher;
+
   constructor(
-    private printerRepo: IPrinterConfigRepository,
-    private eventPublisher?: IEventPublisher
-  ) {}
+    printerRepo: IPrinterConfigRepository,
+    eventPublisher?: IEventPublisher
+  ) {
+    this.printerRepo = printerRepo;
+    this.eventPublisher = eventPublisher;
+  }
 
   getConfig = (_req: Request, res: Response) => {
     const config = this.printerRepo.getConfig();

@@ -114,6 +114,7 @@ export function loadDatabase(): DatabaseSchema {
 }
 
 export function saveDatabase(data: DatabaseSchema) {
+  cachedDb = data;
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
@@ -122,9 +123,8 @@ export function saveDatabase(data: DatabaseSchema) {
     const tempFile = path.join(DB_DIR, `database.${Date.now()}.${Math.random().toString(36).substring(2, 6)}.tmp`);
     fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tempFile, DB_FILE);
-    cachedDb = data;
   } catch (err) {
-    console.error('Erro ao salvar no banco de dados de forma atômica:', err);
+    console.warn('Persistência em disco não disponível no ambiente atual, mantendo em memória:', err);
   }
 }
 

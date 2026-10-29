@@ -56,10 +56,16 @@ export class ZeroDiscountStrategy implements IDiscountStrategy {
  * Dependency Inversion: Depends on IServiceTaxStrategy and IDiscountStrategy abstractions.
  */
 export class BillingCalculator {
+  private taxStrategy: IServiceTaxStrategy;
+  private discountStrategy: IDiscountStrategy;
+
   constructor(
-    private taxStrategy: IServiceTaxStrategy = new StandardPercentageTaxStrategy(),
-    private discountStrategy: IDiscountStrategy = new FixedAmountDiscountStrategy()
-  ) {}
+    taxStrategy: IServiceTaxStrategy = new StandardPercentageTaxStrategy(),
+    discountStrategy: IDiscountStrategy = new FixedAmountDiscountStrategy()
+  ) {
+    this.taxStrategy = taxStrategy;
+    this.discountStrategy = discountStrategy;
+  }
 
   calculate(order: Order, options?: { taxRate?: number; discount?: number }): Order {
     const subtotal = order.items.reduce((acc, item) => acc + item.price * item.quantity, 0);

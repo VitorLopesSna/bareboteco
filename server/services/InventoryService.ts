@@ -9,11 +9,19 @@ import type { IEventPublisher } from './interfaces/IEventNotificationService.ts'
  * Dependency Inversion: Injected with repository and notification abstractions.
  */
 export class InventoryService implements IInventoryService {
+  private productRepo: IProductRepository;
+  private movementRepo: IStockMovementRepository;
+  private eventPublisher?: IEventPublisher;
+
   constructor(
-    private productRepo: IProductRepository,
-    private movementRepo: IStockMovementRepository,
-    private eventPublisher?: IEventPublisher
-  ) {}
+    productRepo: IProductRepository,
+    movementRepo: IStockMovementRepository,
+    eventPublisher?: IEventPublisher
+  ) {
+    this.productRepo = productRepo;
+    this.movementRepo = movementRepo;
+    this.eventPublisher = eventPublisher;
+  }
 
   getAllProducts(): Product[] {
     return this.productRepo.findAll();

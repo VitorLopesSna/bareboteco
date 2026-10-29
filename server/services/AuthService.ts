@@ -17,11 +17,19 @@ import {
  * Dependency Inversion: Operates with IUserRepository, RateLimiter, and AuditLogger abstractions.
  */
 export class AuthService implements IAuthService {
+  private userRepo: IUserRepository;
+  private rateLimiter?: RateLimiter;
+  private auditLogger?: AuditLogger;
+
   constructor(
-    private userRepo: IUserRepository,
-    private rateLimiter?: RateLimiter,
-    private auditLogger?: AuditLogger
-  ) {}
+    userRepo: IUserRepository,
+    rateLimiter?: RateLimiter,
+    auditLogger?: AuditLogger
+  ) {
+    this.userRepo = userRepo;
+    this.rateLimiter = rateLimiter;
+    this.auditLogger = auditLogger;
+  }
 
   login(username: string, passwordPlain: string, clientIp = '127.0.0.1'): LoginResult {
     const cleanUsername = InputValidator.sanitizeString(username, 50).toLowerCase();

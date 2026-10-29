@@ -6,7 +6,11 @@ import type { IAuthService } from '../services/interfaces/IAuthService.ts';
  * Dependency Inversion: Receives IAuthService.
  */
 export class AuthController {
-  constructor(private authService: IAuthService) {}
+  private authService: IAuthService;
+
+  constructor(authService: IAuthService) {
+    this.authService = authService;
+  }
 
   login = (req: Request, res: Response) => {
     const { username, password } = req.body;

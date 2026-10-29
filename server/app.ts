@@ -20,18 +20,20 @@ export function createBaseApp() {
   });
 
   // Health check for proxy and deployment monitoring
-  app.get('/api/health', (_req, res) => {
+  app.get(['/api/health', '/health'], (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
   // Dependency Inversion Principle (DIP): Composition Root
   const container = new ServiceContainer();
+  const apiRouter = createApiRouter(container);
 
-  // API Routes
-  app.use('/api', createApiRouter(container));
+  // Mount API Router under /api and root to seamlessly handle all rewrite topologies
+  app.use('/api', apiRouter);
+  app.use(apiRouter);
 
-  // Centralized JSON Error Handler for /api routes
-  app.use('/api', (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // Centralized JSON Error Handler
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('API Error:', err);
     res.status(err.status || 500).json({
       error: typeof err.message === 'string' ? err.message : 'Erro interno do servidor',
