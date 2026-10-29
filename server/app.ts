@@ -19,9 +19,24 @@ export function createBaseApp() {
     next();
   });
 
-  // Health check for proxy and deployment monitoring
-  app.get(['/api/health', '/health'], (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  // URL Normalization: When Vercel rewrites route to /api, preserve the actual client requested path
+  app.use((req, _res, next) => {
+    const rawHeader = req.headers['x-vercel-original-url'] ||
+      req.headers['x-matched-path'] ||
+      req.headers['x-rewrite-url'];
+    const originalUrl = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+
+    if (typeof originalUrl === 'string' && (req.url === '/api' || req.url === '/api/' || req.url === '/' || req.url === '')) {
+      if (originalUrl.startsWith('/api') || originalUrl.startsWith('/')) {
+        req.url = originalUrl;
+      }
+    }
+    next();
+  });
+
+  // Health check and root ping for proxy and deployment monitoring
+  app.get(['/api/health', '/health', '/api', '/'], (_req, res) => {
+    res.json({ status: 'ok', api: 'Bar & Restaurante API', timestamp: new Date().toISOString() });
   });
 
   // Dependency Inversion Principle (DIP): Composition Root

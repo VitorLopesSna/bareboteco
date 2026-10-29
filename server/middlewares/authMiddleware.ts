@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { IAuthService } from '../services/interfaces/IAuthService.ts';
 import type { AuditLogger } from '../security/AuditLogger.ts';
 import type { User, UserRole } from '../../src/types.ts';
+import { InputValidator } from '../security/InputValidator.ts';
 
 declare global {
   namespace Express {
@@ -25,7 +26,7 @@ export function createAuthMiddleware(authService: IAuthService, auditLogger: Aud
       auditLogger.log({
         type: 'UNAUTHORIZED_ACCESS',
         severity: 'warn',
-        ip: req.ip,
+        ip: InputValidator.getClientIp(req),
         details: `Tentativa de acesso não autenticado a ${req.method} ${req.path}`
       });
       return res.status(401).json({ error: 'Acesso não autorizado: Faça login para continuar' });
@@ -36,7 +37,7 @@ export function createAuthMiddleware(authService: IAuthService, auditLogger: Aud
       auditLogger.log({
         type: 'UNAUTHORIZED_ACCESS',
         severity: 'warn',
-        ip: req.ip,
+        ip: InputValidator.getClientIp(req),
         details: `Token de sessão expirado ou inválido em ${req.method} ${req.path}`
       });
       return res.status(401).json({ error: 'Sessão expirada. Faça login novamente' });
@@ -61,7 +62,7 @@ export function createAuthMiddleware(authService: IAuthService, auditLogger: Aud
           auditLogger.log({
             type: 'UNAUTHORIZED_ACCESS',
             severity: 'security_alert',
-            ip: req.ip,
+            ip: InputValidator.getClientIp(req),
             username: req.user?.username,
             details: `Acesso negado: Perfil '${req.user?.role || 'anônimo'}' tentou acessar recurso restrito [${allowedRoles.join(', ')}] em ${req.method} ${req.path}`
           });

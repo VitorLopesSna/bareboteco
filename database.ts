@@ -39,9 +39,6 @@ export function verifyPassword(password: string, storedHash: string, salt: strin
 let cachedDb: DatabaseSchema | null = null;
 
 function getInitialUsers(): StoredUser[] {
-  const adminHash = hashPassword('admin123');
-  const caixaHash = hashPassword('caixa123');
-  const garcomHash = hashPassword('garcom123');
   const now = new Date().toISOString();
 
   return [
@@ -50,8 +47,8 @@ function getInitialUsers(): StoredUser[] {
       username: 'admin',
       name: 'Gerente Geral',
       role: 'admin',
-      passwordHash: adminHash.hash,
-      salt: adminHash.salt,
+      passwordHash: '5c7c222d910e53e83d48f7ea3b3516689ed53f1c2a69e6d92f9429080b8d856e3103e266f8fadb5e9ee34a9ab8967c36b458545899a1657025c16ba0fb97ad15',
+      salt: 'a1e5530019486f1467f85b0165a328c4',
       createdAt: now
     },
     {
@@ -59,8 +56,8 @@ function getInitialUsers(): StoredUser[] {
       username: 'caixa',
       name: 'Operador de Caixa',
       role: 'caixa',
-      passwordHash: caixaHash.hash,
-      salt: caixaHash.salt,
+      passwordHash: 'b9f1dbc666b7af49747ff09b9ee3c3f8550ecc155318179823a99d11ab6b9be32aad2af538b502755110b1e5f6ad4bd54761d65b38d72c2623cd968dde1371f4',
+      salt: 'bda913ba0aef8b373d6585392703774d',
       createdAt: now
     },
     {
@@ -68,8 +65,8 @@ function getInitialUsers(): StoredUser[] {
       username: 'garcom',
       name: 'Carlos Garçom',
       role: 'garcom',
-      passwordHash: garcomHash.hash,
-      salt: garcomHash.salt,
+      passwordHash: '9653e632a0f3525a50f1df1fdc1cda2ee2260baef1bcee80cfa9ba93562dd2f587fd2cbf004f034f4ad3a35227699ed8dadc1f3e4666a25eaf94d453ec88fcce',
+      salt: 'a268fb254260b6781bb613ef5e98bfee',
       createdAt: now
     }
   ];

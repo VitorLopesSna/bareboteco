@@ -40,4 +40,26 @@ export class InputValidator {
     if (isNaN(num) || !isFinite(num) || num < 0) return fallback;
     return Number(num.toFixed(2));
   }
+
+  /**
+   * Safely retrieves client IP address across serverless, proxy, and standard environments without crashing.
+   */
+  static getClientIp(req: any): string {
+    try {
+      const forwarded = req?.headers?.['x-forwarded-for'];
+      if (typeof forwarded === 'string' && forwarded.length > 0) {
+        return forwarded.split(',')[0].trim();
+      }
+      if (Array.isArray(forwarded) && forwarded.length > 0) {
+        return String(forwarded[0]).trim();
+      }
+      const realIp = req?.headers?.['x-real-ip'];
+      if (typeof realIp === 'string') {
+        return realIp.trim();
+      }
+      return req?.socket?.remoteAddress || '127.0.0.1';
+    } catch {
+      return '127.0.0.1';
+    }
+  }
 }

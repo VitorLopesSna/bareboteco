@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import type { IAuthService } from '../services/interfaces/IAuthService.ts';
+import { InputValidator } from '../security/InputValidator.ts';
 
 /**
  * Single Responsibility: Handling HTTP endpoints for Authentication.
@@ -14,7 +15,7 @@ export class AuthController {
 
   login = (req: Request, res: Response) => {
     const { username, password } = req.body;
-    const clientIp = req.ip || (req.headers['x-forwarded-for'] as string) || '127.0.0.1';
+    const clientIp = InputValidator.getClientIp(req);
     const result = this.authService.login(username, password, clientIp);
 
     if (result.error) {
