@@ -50,23 +50,62 @@ export interface LoginError extends Error {
   remainingAttempts?: number;
 }
 
-export async function loginUser(username: string, password: string): Promise<AuthResponse> {
+export async function loginUser(
+  username: string,
+  password: string
+): Promise<AuthResponse> {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
     body: JSON.stringify({ username, password })
   });
-  const data = await res.json();
+
+  // Lê a resposta como texto antes de tentar converter para JSON.
+  const texto = await res.text();
+
+  let data: any;
+
+  try {
+    data = JSON.parse(texto);
+  } catch {
+    console.error('Resposta inválida da API de login:', {
+      status: res.status,
+      url: res.url,
+      contentType: res.headers.get('content-type'),
+      resposta: texto.slice(0, 500)
+    });
+
+    throw new Error(
+      `A API de login retornou uma resposta inválida (HTTP ${res.status}). ` +
+      'Verifique a configuração do backend na Vercel.'
+    );
+  }
+
   if (!res.ok) {
-    const error = new Error(data.error || 'Erro ao realizar login') as LoginError;
+    const error = new Error(
+      data.error || 'Erro ao realizar login'
+    ) as LoginError;
+
     error.isLocked = data.isLocked;
     error.remainingSeconds = data.remainingSeconds;
     error.remainingAttempts = data.remainingAttempts;
+
     throw error;
   }
+
+  if (!data.token || !data.user) {
+    throw new Error(
+      'A API respondeu, mas não retornou o token e os dados do usuário.'
+    );
+  }
+
   setStoredToken(data.token);
   setStoredUser(data.user);
-  return data;
+
+  return data as AuthResponse;
 }
 
 export async function registerUser(payload: {
