@@ -3,47 +3,12 @@ import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import { ServiceContainer } from './server/container.ts';
-import { createApiRouter } from './server/routes.ts';
+import { createBaseApp } from './server/app.ts';
 
 async function startServer() {
-  const app = express();
+  const { app } = createBaseApp();
   const server = http.createServer(app);
   const PORT = 3000;
-
-  // JSON Body Parser
-  app.use(express.json());
-
-  // CORS & Preflight support for external access and mobile devices
-  app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key');
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
-
-  // Health check for proxy and deployment monitoring
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
-  // Dependency Inversion Principle (DIP): Composition Root
-  const container = new ServiceContainer();
-
-  // API Routes
-  app.use('/api', createApiRouter(container));
-
-  // Centralized JSON Error Handler for /api routes
-  app.use('/api', (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error('API Error:', err);
-    res.status(err.status || 500).json({
-      error: typeof err.message === 'string' ? err.message : 'Erro interno do servidor',
-      status: err.status || 500
-    });
-  });
 
   // Vite middleware for development / Static file server for production
   if (process.env.NODE_ENV !== 'production') {

@@ -12,7 +12,8 @@ interface DatabaseSchema {
   users: StoredUser[];
 }
 
-const DB_DIR = path.join(process.cwd(), 'data');
+const SEED_FILE = path.join(process.cwd(), 'data', 'database.json');
+const DB_DIR = process.env.VERCEL ? '/tmp/data' : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'database.json');
 
 // Cryptographic password hashing using PBKDF2 with SHA-512 and random salt
@@ -87,6 +88,14 @@ export function loadDatabase(): DatabaseSchema {
       const parsed = JSON.parse(content);
       if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
         cachedDb = parsed;
+        return cachedDb;
+      }
+    } else if (fs.existsSync(SEED_FILE)) {
+      const seedContent = fs.readFileSync(SEED_FILE, 'utf-8');
+      const parsedSeed = JSON.parse(seedContent);
+      if (parsedSeed && Array.isArray(parsedSeed.users) && parsedSeed.users.length > 0) {
+        saveDatabase(parsedSeed);
+        cachedDb = parsedSeed;
         return cachedDb;
       }
     }
