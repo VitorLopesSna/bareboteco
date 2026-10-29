@@ -13,7 +13,7 @@ export class ProductController {
   }
 
   createProduct = (req: Request, res: Response) => {
-    const { name, category, price, costPrice, stock, minStock, unit } = req.body;
+    const { name, category, price, costPrice, stock, minStock, unit } = req.body || {};
     if (!name || price === undefined) {
       return res.status(400).json({ error: 'Nome e preço são obrigatórios' });
     }
@@ -33,7 +33,7 @@ export class ProductController {
 
   updateProduct = (req: Request, res: Response) => {
     const { id } = req.params;
-    const updated = this.inventoryService.updateProduct(id, req.body);
+    const updated = this.inventoryService.updateProduct(id, req.body || {});
     if (!updated) {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
@@ -42,7 +42,7 @@ export class ProductController {
 
   adjustStock = (req: Request, res: Response) => {
     const { id } = req.params;
-    const { quantityChange, type, reason } = req.body;
+    const { quantityChange, type, reason } = req.body || {};
     if (quantityChange === undefined) {
       return res.status(400).json({ error: 'Quantidade de alteração é obrigatória' });
     }

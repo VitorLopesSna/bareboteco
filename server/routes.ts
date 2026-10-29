@@ -33,16 +33,45 @@ export function createApiRouter(container: ServiceContainer): Router {
   // Security Audit Logs (Admin only)
   router.get('/security/audit-logs', requireRole('admin'), container.securityController.getAuditLogs);
 
-  // SSE Real-Time synchronization
+  // SSE Real-Time synchronization with Serverless safety guard
   router.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof (res as any).flushHeaders === 'function') {
+      (res as any).flushHeaders();
+    }
+
+    // Tell EventSource to reconnect cleanly after 3 seconds when closed
+    res.write('retry: 3000\n\n');
 
     const clientId = container.notificationService.registerClient(res);
 
+    let serverlessTimer: NodeJS.Timeout | null = null;
+    
+    // In serverless environments (e.g. Vercel), gracefully terminate before the 10s execution limit to prevent FUNCTION_INVOCATION_FAILED
+    const isServerless = Boolean(
+      process.env.VERCEL || 
+      process.env.VERCEL_ENV || 
+      process.env.NOW_REGION || 
+      process.env.AWS_LAMBDA_FUNCTION_NAME
+    );
+
+    if (isServerless) {
+      serverlessTimer = setTimeout(() => {
+        try {
+          container.notificationService.unregisterClient(clientId);
+          res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT_REFRESH' })}\n\n`);
+          res.end();
+        } catch {
+          // ignore stream close errors
+        }
+      }, 8500); // 8.5 seconds - cleanly resolves before Vercel's 10s execution ceiling
+    }
+
     req.on('close', () => {
+      if (serverlessTimer) clearTimeout(serverlessTimer);
       container.notificationService.unregisterClient(clientId);
     });
   });

@@ -58,7 +58,7 @@ export class SecurityController {
   };
 
   generatePix = (req: Request, res: Response) => {
-    const { amount, txId } = req.body;
+    const { amount, txId } = req.body || {};
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       return res.status(400).json({ error: 'Valor inválido para cobrança PIX' });

@@ -15,7 +15,7 @@ export class TableController {
   openTable = (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { waiterName, customerName, guestsCount } = req.body;
+      const { waiterName, customerName, guestsCount } = req.body || {};
       const result = this.orderService.openTable(id, { waiterName, customerName, guestsCount });
       return res.json(result);
     } catch (err: any) {
@@ -26,7 +26,7 @@ export class TableController {
   addItems = (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { items, waiterName } = req.body;
+      const { items, waiterName } = req.body || {};
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: 'Nenhum item fornecido para o pedido' });
       }
@@ -41,7 +41,7 @@ export class TableController {
   markPrinted = (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { itemIds } = req.body;
+      const { itemIds } = req.body || {};
       const result = this.orderService.markItemsPrinted(id, itemIds);
       return res.json({ success: true, ...result });
     } catch (err: any) {
@@ -69,7 +69,7 @@ export class TableController {
         customerName,
         cardLast4,
         cardBrand
-      } = req.body;
+      } = req.body || {};
 
       const idempotencyKey = (req.headers['idempotency-key'] as string) || req.body?.idempotencyKey;
 

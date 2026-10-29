@@ -13,7 +13,14 @@ interface DatabaseSchema {
 }
 
 const SEED_FILE = path.join(process.cwd(), 'data', 'database.json');
-const DB_DIR = process.env.VERCEL ? '/tmp/data' : path.join(process.cwd(), 'data');
+const isReadOnlyFs = Boolean(
+  process.env.VERCEL || 
+  process.env.VERCEL_ENV || 
+  process.env.NOW_REGION || 
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT
+);
+const DB_DIR = isReadOnlyFs ? '/tmp/data' : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'database.json');
 
 // Cryptographic password hashing using PBKDF2 with SHA-512 and random salt

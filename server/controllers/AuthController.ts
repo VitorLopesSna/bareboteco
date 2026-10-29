@@ -14,32 +14,42 @@ export class AuthController {
   }
 
   login = (req: Request, res: Response) => {
-    const { username, password } = req.body;
-    const clientIp = InputValidator.getClientIp(req);
-    const result = this.authService.login(username, password, clientIp);
+    try {
+      const { username, password } = req.body || {};
+      const clientIp = InputValidator.getClientIp(req);
+      const result = this.authService.login(username, password, clientIp);
 
-    if (result.error) {
-      const statusCode = result.isLocked ? 429 : 401;
-      return res.status(statusCode).json(result);
+      if (result.error) {
+        const statusCode = result.isLocked ? 429 : 401;
+        return res.status(statusCode).json(result);
+      }
+
+      return res.json(result);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      return res.status(500).json({ error: err?.message || 'Erro ao realizar login' });
     }
-
-    return res.json(result);
   };
 
   register = (req: Request, res: Response) => {
-    const { username, name, password, role } = req.body;
-    const result = this.authService.register({
-      username,
-      name,
-      passwordPlain: password,
-      role
-    });
+    try {
+      const { username, name, password, role } = req.body || {};
+      const result = this.authService.register({
+        username,
+        name,
+        passwordPlain: password,
+        role
+      });
 
-    if (result.error || !result.user) {
-      return res.status(400).json({ error: result.error || 'Falha ao cadastrar usuário' });
+      if (result.error || !result.user) {
+        return res.status(400).json({ error: result.error || 'Falha ao cadastrar usuário' });
+      }
+
+      return res.json({ token: result.token, user: result.user });
+    } catch (err: any) {
+      console.error('Register error:', err);
+      return res.status(500).json({ error: err?.message || 'Erro ao cadastrar usuário' });
     }
-
-    return res.json({ token: result.token, user: result.user });
   };
 
   me = (req: Request, res: Response) => {

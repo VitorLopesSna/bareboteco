@@ -23,10 +23,11 @@ export function createBaseApp() {
   app.use((req, _res, next) => {
     const rawHeader = req.headers['x-vercel-original-url'] ||
       req.headers['x-matched-path'] ||
-      req.headers['x-rewrite-url'];
+      req.headers['x-rewrite-url'] ||
+      req.headers['x-forwarded-uri'];
     const originalUrl = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
 
-    if (typeof originalUrl === 'string' && (req.url === '/api' || req.url === '/api/' || req.url === '/' || req.url === '')) {
+    if (typeof originalUrl === 'string' && (req.url === '/api' || req.url === '/api/' || req.url === '/' || req.url === '' || req.url.startsWith('/api/index'))) {
       if (originalUrl.startsWith('/api') || originalUrl.startsWith('/')) {
         req.url = originalUrl;
       }
@@ -46,6 +47,14 @@ export function createBaseApp() {
   // Mount API Router under /api and root to seamlessly handle all rewrite topologies
   app.use('/api', apiRouter);
   app.use(apiRouter);
+
+  // Explicit 404 for unhandled API routes to ensure response is terminated promptly
+  app.all(['/api/*', '/api'], (req, res) => {
+    res.status(404).json({
+      error: `Rota da API não encontrada: ${req.method} ${req.url}`,
+      status: 404
+    });
+  });
 
   // Centralized JSON Error Handler
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

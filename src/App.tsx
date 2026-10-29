@@ -144,111 +144,128 @@ export default function App() {
     setCurrentUser(null);
   };
 
-  // Connect to SSE for Real-Time synchronization
+  // Connect to SSE for Real-Time synchronization with serverless heartbeat support
   useEffect(() => {
     let eventSource: EventSource | null = null;
+    let reconnectTimer: NodeJS.Timeout | null = null;
 
     const connectSSE = () => {
-      eventSource = new EventSource('/api/events');
+      try {
+        eventSource = new EventSource('/api/events');
 
-      eventSource.onopen = () => {
-        setSseConnected(true);
-      };
+        eventSource.onopen = () => {
+          setSseConnected(true);
+        };
 
-      eventSource.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          const { type, data } = payload;
+        eventSource.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data);
+            const { type, data } = payload;
 
-          if (type === 'CONNECTED') {
-            setSseConnected(true);
-          } else if (type === 'ITEMS_ADDED') {
-            // Update table & order
-            setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
-            setActiveOrders(prev => ({ ...prev, [data.order.id]: data.order }));
-            if (data.products) setProducts(data.products);
+            if (type === 'CONNECTED' || type === 'HEARTBEAT_REFRESH') {
+              setSseConnected(true);
+            } else if (type === 'ITEMS_ADDED') {
+              // Update table & order
+              setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
+              setActiveOrders(prev => ({ ...prev, [data.order.id]: data.order }));
+              if (data.products) setProducts(data.products);
 
-            // Audio chime & notification
-            if (soundEnabled) playNewOrderSound();
-            setNotificationToast({
-              title: `🔔 Novo Pedido: ${data.table.name}`,
-              message: `${data.newItems?.length || 1} novos itens lançados por ${data.order.waiterName || 'Garçom'}`
-            });
-
-            // Update selected table if open in modal
-            setSelectedTable(curr => curr && curr.id === data.table.id ? data.table : curr);
-
-            // Refresh report in background
-            api.fetchReports().then(setSalesReport).catch(() => {});
-          } else if (type === 'TABLE_OPENED' || type === 'ORDER_REOPENED') {
-            setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
-            setActiveOrders(prev => ({ ...prev, [data.order.id]: data.order }));
-            if (type === 'ORDER_REOPENED') {
-              setHistoryOrders(prev => prev.filter(o => o.id !== data.order.id));
+              // Audio chime & notification
               if (soundEnabled) playNewOrderSound();
               setNotificationToast({
-                title: `♻️ Comanda Reativada: ${data.table.name}`,
-                message: `Comanda #${data.order.id.slice(-4)} reaberta no salão!`
+                title: `🔔 Novo Pedido: ${data.table.name}`,
+                message: `${data.newItems?.length || 1} novos itens lançados por ${data.order.waiterName || 'Garçom'}`
               });
-            }
-            setSelectedTable(curr => curr && curr.id === data.table.id ? data.table : curr);
-            api.fetchReports().then(setSalesReport).catch(() => {});
-          } else if (type === 'BILL_REQUESTED') {
-            setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
-            if (soundEnabled) playBillAlertSound();
-            setNotificationToast({
-              title: `💰 Conta Solicitada: ${data.table.name}`,
-              message: `Total a fechar: R$ ${(data.order?.total || 0).toFixed(2)}`
-            });
-            setSelectedTable(curr => curr && curr.id === data.table.id ? data.table : curr);
-          } else if (type === 'TABLE_CLOSED') {
-            setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
-            setActiveOrders(prev => {
-              const next = { ...prev };
-              delete next[data.closedOrder.id];
-              return next;
-            });
-            setHistoryOrders(prev => [...prev, data.closedOrder]);
-            setSelectedTable(curr => curr && curr.id === data.table.id ? null : curr);
-            api.fetchReports().then(setSalesReport).catch(() => {});
-          } else if (type === 'STOCK_ADJUSTED' || type === 'PRODUCT_UPDATED' || type === 'PRODUCT_CREATED') {
-            if (data.product) {
-              setProducts(prev => {
-                const idx = prev.findIndex(p => p.id === data.product.id);
-                if (idx >= 0) {
-                  const updated = [...prev];
-                  updated[idx] = data.product;
-                  return updated;
-                }
-                return [...prev, data.product];
-              });
-            }
-            if (data.movement) {
-              setStockMovements(prev => [...prev, data.movement]);
-            }
-            api.fetchReports().then(setSalesReport).catch(() => {});
-          } else if (type === 'PRINTER_CONFIG_UPDATED') {
-            if (data.printerConfig) setPrinterConfig(data.printerConfig);
-          }
-        } catch (e) {
-          console.error('Error handling SSE event:', e);
-        }
-      };
 
-      eventSource.onerror = () => {
-        setSseConnected(false);
-        eventSource?.close();
-        // Retry connection in 3 seconds
-        setTimeout(connectSSE, 3000);
-      };
+              // Update selected table if open in modal
+              setSelectedTable(curr => curr && curr.id === data.table.id ? data.table : curr);
+
+              // Refresh report in background
+              api.fetchReports().then(setSalesReport).catch(() => {});
+            } else if (type === 'TABLE_OPENED' || type === 'ORDER_REOPENED') {
+              setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
+              setActiveOrders(prev => ({ ...prev, [data.order.id]: data.order }));
+              if (type === 'ORDER_REOPENED') {
+                setHistoryOrders(prev => prev.filter(o => o.id !== data.order.id));
+                if (soundEnabled) playNewOrderSound();
+                setNotificationToast({
+                  title: `♻️ Comanda Reativada: ${data.table.name}`,
+                  message: `Comanda #${data.order.id.slice(-4)} reaberta no salão!`
+                });
+              }
+              setSelectedTable(curr => curr && curr.id === data.table.id ? data.table : curr);
+              api.fetchReports().then(setSalesReport).catch(() => {});
+            } else if (type === 'BILL_REQUESTED') {
+              setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
+              if (soundEnabled) playBillAlertSound();
+              setNotificationToast({
+                title: `💰 Conta Solicitada: ${data.table.name}`,
+                message: `Total a fechar: R$ ${(data.order?.total || 0).toFixed(2)}`
+              });
+              setSelectedTable(curr => curr && curr.id === data.table.id ? data.table : curr);
+            } else if (type === 'TABLE_CLOSED') {
+              setTables(prev => prev.map(t => t.id === data.table.id ? data.table : t));
+              setActiveOrders(prev => {
+                const next = { ...prev };
+                delete next[data.closedOrder.id];
+                return next;
+              });
+              setHistoryOrders(prev => [...prev, data.closedOrder]);
+              setSelectedTable(curr => curr && curr.id === data.table.id ? null : curr);
+              api.fetchReports().then(setSalesReport).catch(() => {});
+            } else if (type === 'STOCK_ADJUSTED' || type === 'PRODUCT_UPDATED' || type === 'PRODUCT_CREATED') {
+              if (data.product) {
+                setProducts(prev => {
+                  const idx = prev.findIndex(p => p.id === data.product.id);
+                  if (idx >= 0) {
+                    const updated = [...prev];
+                    updated[idx] = data.product;
+                    return updated;
+                  }
+                  return [...prev, data.product];
+                });
+              }
+              if (data.movement) {
+                setStockMovements(prev => [...prev, data.movement]);
+              }
+              api.fetchReports().then(setSalesReport).catch(() => {});
+            } else if (type === 'PRINTER_CONFIG_UPDATED') {
+              if (data.printerConfig) setPrinterConfig(data.printerConfig);
+            }
+          } catch (e) {
+            console.error('Error handling SSE event:', e);
+          }
+        };
+
+        eventSource.onerror = () => {
+          eventSource?.close();
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connectSSE, 3000);
+        };
+      } catch {
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectSSE, 5000);
+      }
     };
 
     connectSSE();
 
+    // Background resilient synchronization (every 15s and on window focus)
+    const handleFocus = () => {
+      loadState();
+    };
+    window.addEventListener('focus', handleFocus);
+    const syncInterval = setInterval(() => {
+      loadState();
+    }, 15000);
+
     return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      clearInterval(syncInterval);
+      window.removeEventListener('focus', handleFocus);
       eventSource?.close();
     };
-  }, [soundEnabled]);
+  }, [soundEnabled, loadState]);
 
   // Dismiss toast automatically
   useEffect(() => {
