@@ -148,6 +148,7 @@ export default function App() {
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let reconnectTimer: NodeJS.Timeout | null = null;
+    let failCount = 0;
 
     const connectSSE = () => {
       try {
@@ -155,12 +156,19 @@ export default function App() {
 
         eventSource.onopen = () => {
           setSseConnected(true);
+          failCount = 0;
         };
 
         eventSource.onmessage = (event) => {
           try {
             const payload = JSON.parse(event.data);
             const { type, data } = payload;
+
+            if (type === 'SERVERLESS_POLLING_MODE') {
+              eventSource?.close();
+              setSseConnected(true);
+              return;
+            }
 
             if (type === 'CONNECTED' || type === 'HEARTBEAT_REFRESH') {
               setSseConnected(true);
@@ -238,26 +246,37 @@ export default function App() {
         };
 
         eventSource.onerror = () => {
+          failCount++;
           eventSource?.close();
+          // In serverless environments like Vercel, cease SSE retries and fall back to polling
+          if (failCount >= 2) {
+            setSseConnected(true);
+            return;
+          }
           if (reconnectTimer) clearTimeout(reconnectTimer);
-          reconnectTimer = setTimeout(connectSSE, 3000);
+          reconnectTimer = setTimeout(connectSSE, 5000);
         };
       } catch {
-        if (reconnectTimer) clearTimeout(reconnectTimer);
-        reconnectTimer = setTimeout(connectSSE, 5000);
+        failCount++;
+        if (failCount < 2) {
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connectSSE, 5000);
+        } else {
+          setSseConnected(true);
+        }
       }
     };
 
     connectSSE();
 
-    // Background resilient synchronization (every 15s and on window focus)
+    // Background resilient synchronization (every 8s and on window focus)
     const handleFocus = () => {
       loadState();
     };
     window.addEventListener('focus', handleFocus);
     const syncInterval = setInterval(() => {
       loadState();
-    }, 15000);
+    }, 8000);
 
     return () => {
       if (reconnectTimer) clearTimeout(reconnectTimer);

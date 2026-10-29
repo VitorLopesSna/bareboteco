@@ -27,8 +27,8 @@ export function createBaseApp() {
       req.headers['x-forwarded-uri'];
     const originalUrl = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
 
-    if (typeof originalUrl === 'string' && (req.url === '/api' || req.url === '/api/' || req.url === '/' || req.url === '' || req.url.startsWith('/api/index'))) {
-      if (originalUrl.startsWith('/api') || originalUrl.startsWith('/')) {
+    if (typeof originalUrl === 'string' && originalUrl.length > 0) {
+      if (req.url === '/api' || req.url === '/api/' || req.url === '/' || req.url === '' || req.url.startsWith('/api/index')) {
         req.url = originalUrl;
       }
     }

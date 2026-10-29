@@ -33,8 +33,26 @@ export function createApiRouter(container: ServiceContainer): Router {
   // Security Audit Logs (Admin only)
   router.get('/security/audit-logs', requireRole('admin'), container.securityController.getAuditLogs);
 
-  // SSE Real-Time synchronization with Serverless safety guard
+  // Real-Time synchronization with Serverless safety guard
   router.get('/events', (req, res) => {
+    // In serverless environments (e.g. Vercel), long-lived SSE connections cause FUNCTION_INVOCATION_FAILED.
+    // Gracefully instruct the client to use background state polling.
+    const isServerless = Boolean(
+      process.env.VERCEL || 
+      process.env.VERCEL_ENV || 
+      process.env.NOW_REGION || 
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      req.headers['x-vercel-id']
+    );
+
+    if (isServerless) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'close');
+      res.write(`data: ${JSON.stringify({ type: 'SERVERLESS_POLLING_MODE' })}\n\n`);
+      return res.end();
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
@@ -48,30 +66,7 @@ export function createApiRouter(container: ServiceContainer): Router {
 
     const clientId = container.notificationService.registerClient(res);
 
-    let serverlessTimer: NodeJS.Timeout | null = null;
-    
-    // In serverless environments (e.g. Vercel), gracefully terminate before the 10s execution limit to prevent FUNCTION_INVOCATION_FAILED
-    const isServerless = Boolean(
-      process.env.VERCEL || 
-      process.env.VERCEL_ENV || 
-      process.env.NOW_REGION || 
-      process.env.AWS_LAMBDA_FUNCTION_NAME
-    );
-
-    if (isServerless) {
-      serverlessTimer = setTimeout(() => {
-        try {
-          container.notificationService.unregisterClient(clientId);
-          res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT_REFRESH' })}\n\n`);
-          res.end();
-        } catch {
-          // ignore stream close errors
-        }
-      }, 8500); // 8.5 seconds - cleanly resolves before Vercel's 10s execution ceiling
-    }
-
     req.on('close', () => {
-      if (serverlessTimer) clearTimeout(serverlessTimer);
       container.notificationService.unregisterClient(clientId);
     });
   });

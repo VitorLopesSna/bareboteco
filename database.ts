@@ -83,28 +83,35 @@ export function loadDatabase(): DatabaseSchema {
   if (cachedDb) return cachedDb;
 
   try {
-    if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
+    try {
+      if (!fs.existsSync(DB_DIR)) {
+        fs.mkdirSync(DB_DIR, { recursive: true });
+      }
+    } catch {
+      // In read-only or restricted environments, proceed with memory fallback
     }
 
-    if (fs.existsSync(DB_FILE)) {
-      const content = fs.readFileSync(DB_FILE, 'utf-8');
-      const parsed = JSON.parse(content);
-      if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
-        cachedDb = parsed;
-        return cachedDb;
+    try {
+      if (fs.existsSync(DB_FILE)) {
+        const content = fs.readFileSync(DB_FILE, 'utf-8');
+        const parsed = JSON.parse(content);
+        if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
+          cachedDb = parsed;
+          return cachedDb;
+        }
+      } else if (fs.existsSync(SEED_FILE)) {
+        const seedContent = fs.readFileSync(SEED_FILE, 'utf-8');
+        const parsedSeed = JSON.parse(seedContent);
+        if (parsedSeed && Array.isArray(parsedSeed.users) && parsedSeed.users.length > 0) {
+          cachedDb = parsedSeed;
+          return cachedDb;
+        }
       }
-    } else if (fs.existsSync(SEED_FILE)) {
-      const seedContent = fs.readFileSync(SEED_FILE, 'utf-8');
-      const parsedSeed = JSON.parse(seedContent);
-      if (parsedSeed && Array.isArray(parsedSeed.users) && parsedSeed.users.length > 0) {
-        saveDatabase(parsedSeed);
-        cachedDb = parsedSeed;
-        return cachedDb;
-      }
+    } catch (readErr) {
+      console.warn('Persistência em disco não disponível, utilizando banco em memória:', readErr);
     }
   } catch (err) {
-    console.error('Erro ao ler banco de dados em disco, reinicializando...', err);
+    console.warn('Erro ao inicializar banco de dados, utilizando fallback em memória:', err);
   }
 
   // If file does not exist or empty, initialize with default encrypted users
@@ -112,8 +119,12 @@ export function loadDatabase(): DatabaseSchema {
     users: getInitialUsers()
   };
 
-  saveDatabase(defaultData);
   cachedDb = defaultData;
+  try {
+    saveDatabase(defaultData);
+  } catch {
+    // ignore
+  }
   return cachedDb;
 }
 
@@ -128,7 +139,7 @@ export function saveDatabase(data: DatabaseSchema) {
     fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tempFile, DB_FILE);
   } catch (err) {
-    console.warn('Persistência em disco não disponível no ambiente atual, mantendo em memória:', err);
+    // Graceful in-memory fallback: cachedDb maintains current state
   }
 }
 
