@@ -9,10 +9,21 @@ import { createApiRouter } from './server/routes.ts';
 async function startServer() {
   const app = express();
   const server = http.createServer(app);
-  const PORT = Number(process.env.PORT || 3000);
+  const PORT = 3000;
 
   // JSON Body Parser
   app.use(express.json());
+
+  // CORS & Preflight support for external access and mobile devices
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
 
   // Health check for proxy and deployment monitoring
   app.get('/api/health', (_req, res) => {
@@ -24,6 +35,15 @@ async function startServer() {
 
   // API Routes
   app.use('/api', createApiRouter(container));
+
+  // Centralized JSON Error Handler for /api routes
+  app.use('/api', (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error('API Error:', err);
+    res.status(err.status || 500).json({
+      error: typeof err.message === 'string' ? err.message : 'Erro interno do servidor',
+      status: err.status || 500
+    });
+  });
 
   // Vite middleware for development / Static file server for production
   if (process.env.NODE_ENV !== 'production') {

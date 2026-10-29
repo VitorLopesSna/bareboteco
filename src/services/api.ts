@@ -50,65 +50,73 @@ export interface LoginError extends Error {
   remainingAttempts?: number;
 }
 
-export async function loginUser(
-  username: string,
-  password: string
-): Promise<AuthResponse> {
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({ username, password })
-  });
-
-  // Lê a resposta como texto antes de tentar converter para JSON.
-  const texto = await res.text();
-
-  let data: any;
-
+export function getErrorMessage(errData: any, fallback = 'Erro na operação'): string {
+  if (!errData) return fallback;
+  if (typeof errData === 'string') return errData;
+  if (typeof errData.error === 'string') return errData.error;
+  if (errData.error && typeof errData.error === 'object') {
+    if (typeof errData.error.message === 'string') return errData.error.message;
+    if (typeof errData.error.detail === 'string') return errData.error.detail;
+    try {
+      return JSON.stringify(errData.error);
+    } catch {
+      return fallback;
+    }
+  }
+  if (typeof errData.message === 'string') return errData.message;
+  if (typeof errData.detail === 'string') return errData.detail;
   try {
-    data = JSON.parse(texto);
+    const str = JSON.stringify(errData);
+    return str !== '{}' ? str : fallback;
   } catch {
-    console.error('Resposta inválida da API de login:', {
-      status: res.status,
-      url: res.url,
-      contentType: res.headers.get('content-type'),
-      resposta: texto.slice(0, 500)
-    });
+    return fallback;
+  }
+}
 
-    throw new Error(
-      `A API de login retornou uma resposta inválida (HTTP ${res.status}). ` +
-      'Verifique a configuração do backend na Vercel.'
-    );
+export async function loginUser(username: string, password: string): Promise<AuthResponse> {
+  let res: Response;
+  try {
+    res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+  } catch (netErr: any) {
+    const netMsg = netErr?.message && netErr.message !== '[object Object]' 
+      ? netErr.message 
+      : 'Não foi possível conectar ao servidor';
+    throw new Error(`Falha de conexão: ${netMsg}`);
+  }
+
+  let data: any = null;
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    const rawText = await res.text().catch(() => '');
+    data = { error: rawText.slice(0, 150) || `Erro HTTP ${res.status}: ${res.statusText}` };
   }
 
   if (!res.ok) {
-    const error = new Error(
-      data.error || 'Erro ao realizar login'
-    ) as LoginError;
-
-    error.isLocked = data.isLocked;
-    error.remainingSeconds = data.remainingSeconds;
-    error.remainingAttempts = data.remainingAttempts;
-
+    const msg = getErrorMessage(data, `Falha no login (HTTP ${res.status})`);
+    const error = new Error(msg) as LoginError;
+    error.isLocked = data?.isLocked || false;
+    error.remainingSeconds = typeof data?.remainingSeconds === 'number' ? data.remainingSeconds : undefined;
+    error.remainingAttempts = typeof data?.remainingAttempts === 'number' ? data.remainingAttempts : undefined;
     throw error;
   }
 
-  if (!data.token || !data.user) {
-    throw new Error(
-      'A API respondeu, mas não retornou o token e os dados do usuário.'
-    );
+  if (!data?.token || !data?.user) {
+    throw new Error('Resposta incompleta do servidor ao realizar login');
   }
 
   setStoredToken(data.token);
   setStoredUser(data.user);
-
- console.log('Resposta da API:', data);
- console.log('JSON recebido:', JSON.stringify(data, null, 2));
-
-  return data as AuthResponse;
+  return data;
 }
 
 export async function registerUser(payload: {
@@ -117,14 +125,26 @@ export async function registerUser(payload: {
   password: string;
   role: UserRole;
 }): Promise<AuthResponse> {
-  const res = await fetch('/api/auth/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
+  let res: Response;
+  try {
+    res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (netErr: any) {
+    throw new Error('Falha de conexão com o servidor ao cadastrar usuário');
+  }
+
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+
   if (!res.ok) {
-    throw new Error(data.error || 'Erro ao cadastrar usuário');
+    throw new Error(getErrorMessage(data, 'Erro ao cadastrar usuário'));
   }
   setStoredToken(data.token);
   setStoredUser(data.user);

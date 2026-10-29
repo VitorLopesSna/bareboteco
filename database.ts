@@ -120,11 +120,13 @@ export function saveDatabase(data: DatabaseSchema) {
 }
 
 export function findUserByUsername(username: string): StoredUser | undefined {
+  if (!username || typeof username !== 'string') return undefined;
   const db = loadDatabase();
-  return db.users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
+  return db.users.find(u => u.username && u.username.toLowerCase() === username.trim().toLowerCase());
 }
 
 export function findUserById(id: string): StoredUser | undefined {
+  if (!id || typeof id !== 'string') return undefined;
   const db = loadDatabase();
   return db.users.find(u => u.id === id);
 }
